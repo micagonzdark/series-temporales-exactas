@@ -1,0 +1,6 @@
+*.ipynb filter=nbstripout
+*.zpln filter=nbstripout
+*.ipynb diff=ipynb
+
+# Excepción: este notebook conserva sus outputs (sirve de referencia).
+notebooks/00_definiciones.ipynb -filter -diff
