@@ -1,79 +1,75 @@
-# TP Procesamiento de Señales — Series de tiempo en charts de Spotify
+# TP Series Temporales — Análisis de charts de Spotify
 
-## Pregunta de investigación
+Trabajo práctico de series temporales: tratamos la evolución diaria de
+streams/posición de canciones en el Top de Spotify (Argentina / Global) como una
+señal real y le aplicamos las herramientas de la materia (muestreo, Fourier,
+filtros, energía, correlación, estacionariedad y forecasting).
 
-¿Se puede tratar la evolución diaria de streams/posición de una canción (o de un
-género agregado) en el Top de Spotify como una señal real, y aplicarle las
-herramientas de la materia (muestreo, Fourier, filtros, energía, correlación,
-forecasting) para caracterizar su comportamiento — estacionalidad semanal,
-tendencia, saltos abruptos (virilidad) y comparación entre series distintas?
+## Pregunta central
 
-## Equipo — quién trabaja qué serie
+**¿Se puede caracterizar y predecir el comportamiento de una canción en los
+charts de Spotify tratándola como una serie temporal / señal?**
 
-| Persona   | Notebook                      | Serie asignada (canción o género) | Región | Chart |
-|-----------|--------------------------------|------------------------------------|--------|-------|
-| Persona A | `notebooks/persona_a.ipynb`   | _completar_                         | _completar_ | _completar_ |
-| Persona B | `notebooks/persona_b.ipynb`   | _completar_                         | _completar_ | _completar_ |
-| Persona C | `notebooks/persona_c.ipynb`   | _completar_                         | _completar_ | _completar_ |
-| Persona D | `notebooks/persona_d.ipynb`   | _completar_                         | _completar_ | _completar_ |
+### Sub-preguntas
 
-Cada persona trabaja en su propia rama (`persona-a`, `persona-b`, `persona-c`,
-`persona-d`), partiendo del notebook base `notebooks/00_base_template.ipynb`,
-y cambia los parámetros (`CANCION`/`GENERO`, `REGION`, `CHART`) por la serie
-que le toca. La sección 5 (comparación/correlación entre series del equipo) se
-arma después, juntando las 4 series ya procesadas.
+1. **Estructura de la señal** — ¿Qué componentes tiene la serie (tendencia,
+   estacionalidad semanal, saltos abruptos) y cómo se ven en el dominio del
+   tiempo y de la frecuencia (FFT, filtros MA, energía)?
+2. **Comparación entre series** — ¿El chart argentino sigue al global? ¿Con qué
+   desfasaje y qué correlación (autocorrelación, correlación cruzada)?
+3. **Predicción** — ¿Es la serie estacionaria y qué tan bien se puede pronosticar
+   su evolución (ARIMA / Prophet, validado con backtesting)?
 
-## Estructura del repo
+## Estructura de carpetas
 
-```
+```text
 .
 ├── data/               # CSVs (no versionados, ver .gitignore)
-├── notebooks/
-│   ├── 00_base_template.ipynb   # notebook base compartido
-│   ├── persona_a.ipynb
-│   ├── persona_b.ipynb
-│   ├── persona_c.ipynb
-│   └── persona_d.ipynb
-├── src/                # funciones compartidas (carga de datos, FFT, filtros MA, energía, correlación)
 ├── resultados/         # gráficos finales e informe
+├── src/
+│   ├── __init__.py
+│   └── utils.py        # contrato (stubs) de todas las funciones compartidas
+├── notebooks/
+│   ├── 00_definiciones.ipynb     # definiciones, alcance y convenciones del TP
+│   ├── 01_carga_y_datos.ipynb    # carga del dataset y armado de series
+│   ├── 02_resumen_general.ipynb  # exploratorio y estadística descriptiva
+│   ├── 03_ciclo_de_vida.ipynb    # ciclo de vida de una canción (forma de onda)
+│   ├── 04_comparacion_global.ipynb  # Argentina vs. Global (correlación)
+│   ├── 05_forecasting.ipynb      # estacionariedad + ARIMA/Prophet + backtesting
+│   └── 06_conclusiones.ipynb     # cierre e integración de resultados
 ├── requirements.txt
+├── .gitignore
 └── README.md
 ```
+
+Todas las funciones auxiliares viven en un único módulo `src/utils.py` (por ahora
+como stubs con firma + docstring). Los notebooks las importan con
+`from src import utils`.
 
 ## Dataset
 
 Usamos [Spotify Charts (dhruvildave)](https://www.kaggle.com/datasets/dhruvildave/spotify-charts)
-de Kaggle: contiene, por día, el Top 200 / Viral 50 de Spotify en decenas de
-países (incluye `Argentina` y `Global`), con columnas `title, rank, date,
-artist, url, region, chart, trend, streams`.
-
-### Cómo conseguir el CSV (una sola vez para todo el grupo)
-
-1. Crear una cuenta gratuita en Kaggle y entrar a la página del dataset.
-2. Descargar `charts.csv` (el archivo completo es grande: ~26 millones de
-   filas, puede superar 1 GB descomprimido). Alternativa: usar la API de
-   Kaggle (`kaggle datasets download -d dhruvildave/spotify-charts`).
-3. Una sola persona lo descarga, corre la celda de "Filtrado inicial" de
-   `notebooks/00_base_template.ipynb` (se queda solo con `Argentina` +
-   `Global`), y comparte el CSV chico resultante con el resto del equipo
-   (Drive u otro medio — **no subirlo a git**).
-4. Cada integrante coloca ese archivo en `data/charts_ar_global.csv`.
-
-Los CSV **no se versionan** (ver `.gitignore`): cada uno los descarga/copia
-localmente en su carpeta `data/`.
+de Kaggle: por día, el Top 200 / Viral 50 de Spotify en decenas de países
+(incluye `Argentina` y `Global`), con columnas `title, rank, date, artist, url,
+region, chart, trend, streams`. El CSV completo es grande (~26M filas); una sola
+persona lo descarga, corre `cargar_dataset_completo` para quedarse con Argentina +
+Global y comparte el CSV chico. Los CSV **no se versionan** (ver `.gitignore`).
 
 ## Cómo correr los notebooks
 
-1. Clonar el repo y pararse en la rama que corresponda (`persona-a`,
-   `persona-b`, `persona-c` o `persona-d`).
+1. Clonar el repo.
 2. Crear un entorno virtual e instalar dependencias:
-   ```
+
+   ```bash
    python -m venv venv
    venv\Scripts\activate        # Windows
    pip install -r requirements.txt
    ```
-3. Poner `charts_ar_global.csv` en `data/` (ver sección Dataset).
-4. Abrir el notebook propio (`notebooks/persona_x.ipynb`) con Jupyter/VS
-   Code y correr las celdas en orden. Las funciones compartidas de `src/`
-   se importan directamente desde los notebooks (carga de datos, FFT,
-   filtros de media móvil, energía y correlación entre series).
+
+3. Correr `nbstripout --install` una sola vez después de clonar, para que git
+   limpie automáticamente los outputs de los notebooks al commitear (excepto
+   `notebooks/00_definiciones.ipynb`, que conserva los suyos como referencia).
+4. Poner el CSV en `data/` (ver sección Dataset).
+5. Abrir los notebooks de `notebooks/` con Jupyter/VS Code y correrlos en orden,
+   empezando por `00_definiciones`. Cada notebook agrega `..` al `sys.path` e
+   importa las funciones compartidas con `from src import utils`.
